@@ -47,36 +47,66 @@
     <script>
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=950728203&single=true&output=csv';
 
-        async function update() {
-            try {
-                const response = await fetch(csvUrl + '&cb=' + new Date().getTime());
-                const csvText = await response.text();
-                const lines = csvText.split('\n');
-                const tbody = document.getElementById('leaderboard-data');
-                tbody.innerHTML = '';
+        function parseCSV(text) {
+        // This regex handles commas inside quotes, just in case
+        const rows = text.split(/\r?\n/);
+        return rows.map(row => row.split(',').map(cell => cell.trim()));
+    }
 
-                for (let i = 1; i < lines.length; i++) {
-                    const row = lines[i].split(',');
-                    if (row.length < 9) continue;
-                    const [rank, name, total, g1, s1, g2, s2, g3, s3] = row;
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-[#1c2128]";
-                    tr.innerHTML = `
-                        <td class="px-4 py-5 text-center font-bold text-gray-500 text-sm">${rank}</td>
-                        <td class="px-4 py-5 font-bold text-gray-100">${name}</td>
-                        <td class="px-4 py-5 text-center bg-[#1c2128]">
-                            <span class="${total.includes('-') ? 'text-red-500' : 'text-white'} text-xl font-bold">${total === '0' ? 'E' : total}</span>
-                        </td>
-                        <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">${g1}<br><span class="${s1.includes('-') ? 'text-red-500' : 'text-gray-500'}">${s1}</span></td>
-                        <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">${g2}<br><span class="${s2.includes('-') ? 'text-red-500' : 'text-gray-500'}">${s2}</span></td>
-                        <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">${g3}<br><span class="${s3.includes('-') ? 'text-red-500' : 'text-gray-500'}">${s3}</span></td>
-                    `;
-                    tbody.appendChild(tr);
-                }
-            } catch (e) { console.error(e); }
+    async function update() {
+        try {
+            // The cachebuster '&cb=' forces the browser to bypass its own cache
+            const response = await fetch(csvUrl + '&cb=' + new Date().getTime());
+            const csvText = await response.text();
+            const data = parseCSV(csvText);
+            
+            const tbody = document.getElementById('leaderboard-data');
+            tbody.innerHTML = '';
+
+            // Start at i=1 to skip header
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (row.length < 9 || !row[1]) continue; // Skip empty rows or rows without a participant
+
+                const [rank, name, total, g1, s1, g2, s2, g3, s3] = row;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-[#1c2128] transition-colors";
+                
+                // Logic: Only show 'E' if the score is actually 0. 
+                // If it's blank or "Check Name", show a dash or the text.
+                let displayTotal = total;
+                if (total === '0') displayTotal = 'E';
+                if (total === '') displayTotal = '...';
+
+                const isUnder = total.startsWith('-');
+
+                tr.innerHTML = `
+                    <td class="px-4 py-5 text-center font-bold text-gray-500 text-sm">${rank}</td>
+                    <td class="px-4 py-5 font-bold text-gray-100">${name}</td>
+                    <td class="px-4 py-5 text-center bg-[#1c2128]">
+                        <span class="${isUnder ? 'text-red-500' : 'text-white'} text-xl font-bold">${displayTotal}</span>
+                    </td>
+                    <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">
+                        <div class="text-gray-200">${g1}</div>
+                        <div class="${s1.includes('-') ? 'text-red-500' : 'text-gray-400'}">${s1}</div>
+                    </td>
+                    <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">
+                        <div class="text-gray-200">${g2}</div>
+                        <div class="${s2.includes('-') ? 'text-red-500' : 'text-gray-400'}">${s2}</div>
+                    </td>
+                    <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">
+                        <div class="text-gray-200">${g3}</div>
+                        <div class="${s3.includes('-') ? 'text-red-500' : 'text-gray-400'}">${s3}</div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        } catch (e) { 
+            console.error("Fetch error:", e);
         }
-        update();
-        setInterval(update, 60000);
+    }
+    update();
+    setInterval(update, 60000);
     </script>
 </body>
 </html>
