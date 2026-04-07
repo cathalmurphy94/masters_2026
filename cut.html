@@ -22,7 +22,7 @@
     <div class="max-w-4xl mx-auto">
         <header class="masters-header rounded-t-xl p-6 text-center shadow-2xl">
             <h1 class="text-3xl md:text-5xl font-serif text-[#f6c444]">The Masters</h1>
-            <p class="text-white text-[10px] uppercase tracking-[0.3em] mt-2 font-semibold">Live Cut Line Tracker</p>
+            <p class="text-white text-[10px] uppercase tracking-[0.3em] mt-2 font-semibold italic">Live Cut Line Tracker</p>
         </header>
 
         <nav class="bg-[#161b22] border-x border-[#30363d] flex justify-center space-x-6 py-3 sticky top-0 z-50">
@@ -32,42 +32,47 @@
         </nav>
 
         <div id="cut-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-            </div>
+            <p class="col-span-full text-center text-gray-500 py-10 italic">Loading cut data...</p>
+        </div>
     </div>
 
     <script>
-        const cutUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=103685137&single=true&output=csv';
+        const cutUrl = 'PASTE_YOUR_CUT_LIVE_CSV_LINK_HERE';
 
         async function update() {
             try {
                 const response = await fetch(cutUrl + '&cb=' + new Date().getTime());
                 const csvText = await response.text();
-                const rows = csvText.split('\n').slice(1);
+                const lines = csvText.split(/\r?\n/);
                 const container = document.getElementById('cut-list');
                 container.innerHTML = '';
 
-                rows.forEach(line => {
+                lines.slice(1).forEach(line => {
                     const cols = line.split(',').map(c => c.trim());
                     if (cols.length < 5 || !cols[0]) return;
                     const [name, score, toCut, isCut, today] = cols;
                     
                     const toCutNum = parseInt(toCut);
                     let cardClass = 'card-safe';
+                    // Bubble is within 1 shot of the cut line
                     if (toCutNum >= -1 && toCutNum <= 1) cardClass = 'card-bubble';
+                    // Cut is anyone ESPN marked as 'Yes' or if they are logically cut
                     if (isCut.toLowerCase() === 'yes' || isCut.includes('❌')) cardClass = 'card-cut';
 
                     const card = document.createElement('div');
                     card.className = `p-4 rounded shadow-lg flex justify-between items-center ${cardClass}`;
+                    
+                    const scoreDisplay = (score === '0' || score === 'E') ? 'E' : (score > 0 ? '+' + score : score);
+                    const toCutDisplay = isCut.toLowerCase() === 'yes' ? '❌ MISSED CUT' : (toCutNum <= 0 ? Math.abs(toCutNum) + " Clear" : toCutNum + " Back");
+
                     card.innerHTML = `
                         <div>
                             <p class="text-white font-bold">${name}</p>
-                            <p class="text-[10px] text-gray-400 uppercase tracking-tighter">
-                                ${isCut.toLowerCase() === 'yes' ? '❌ MISSED CUT' : (toCutNum <= 0 ? Math.abs(toCutNum) + " Clear" : toCutNum + " Back")}
-                            </p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-tighter">${toCutDisplay}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-xl font-serif ${score.includes('-') ? 'text-red-500' : 'text-white'}">${score === '0' ? 'E' : score}</p>
-                            <p class="text-[10px] text-gray-500 italic">Today: ${today}</p>
+                            <p class="text-xl font-serif ${score.includes('-') ? 'text-red-500' : 'text-white'}">${scoreDisplay}</p>
+                            <p class="text-[10px] text-gray-500">Today: ${today}</p>
                         </div>
                     `;
                     container.appendChild(card);
