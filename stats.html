@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masters 2026 | Stats Deep Dive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --masters-green: #004b23; --masters-yellow: #f6c444; --masters-red: #d91e18; }
+        body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e6edf3; }
+        .font-serif { font-family: 'Libre Baskerville', serif; }
+        .masters-header { background: linear-gradient(to bottom, #004b23, #003a1b); border-bottom: 4px solid var(--masters-yellow); }
+        .nav-link { color: #8b949e; border-bottom: 2px solid transparent; transition: all 0.3s; }
+        .nav-active { color: var(--masters-yellow) !important; border-bottom: 2px solid var(--masters-yellow) !important; }
+    </style>
+</head>
+<body class="p-2 md:p-6">
+    <div class="max-w-4xl mx-auto">
+        <header class="masters-header rounded-t-xl p-6 text-center shadow-2xl">
+            <h1 class="text-3xl md:text-5xl font-serif text-[#f6c444]">The Masters</h1>
+            <p class="text-white text-[10px] uppercase tracking-[0.3em] mt-2 font-semibold">Deep Dive: Team Statistics</p>
+        </header>
+
+        <nav class="bg-[#161b22] border-x border-[#30363d] flex justify-center space-x-8 py-3 sticky top-0 z-50">
+            <a href="index.html" class="nav-link px-4 py-1 text-xs font-bold uppercase tracking-widest hover:text-white">Standings</a>
+            <a href="stats.html" class="nav-link nav-active px-4 py-1 text-xs font-bold uppercase tracking-widest">Deep Dive</a>
+        </nav>
+
+        <div class="bg-[#161b22] border border-[#30363d] rounded-b-xl shadow-2xl overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-[#0d1117] text-gray-400 uppercase text-[10px] tracking-widest border-b border-[#30363d]">
+                    <tr>
+                        <th class="px-4 py-4 w-12 text-center">Rank</th>
+                        <th class="px-4 py-4">Participant</th>
+                        <th class="px-4 py-4 text-center">To Par</th>
+                        <th class="px-4 py-4 text-center bg-[#1c2128]">Shots</th>
+                        <th class="px-4 py-4 text-center">Comb. Odds</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-data" class="divide-y divide-[#30363d]">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const statsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=2089324932&single=true&output=csv';
+
+        async function updateStats() {
+            try {
+                const response = await fetch(statsUrl + '&cachebuster=' + new Date().getTime());
+                const csvText = await response.text();
+                const lines = csvText.split('\n');
+                const tbody = document.getElementById('stats-data');
+                tbody.innerHTML = '';
+
+                for (let i = 1; i < lines.length; i++) {
+                    const row = lines[i].split(',');
+                    if (row.length < 5) continue;
+                    const [rank, name, toPar, shots, odds] = row;
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-[#1c2128]";
+                    tr.innerHTML = `
+                        <td class="px-4 py-5 text-center text-gray-500 font-bold">${rank}</td>
+                        <td class="px-4 py-5 font-bold text-gray-100">${name}</td>
+                        <td class="px-4 py-5 text-center ${toPar.includes('-') ? 'text-red-500' : 'text-white'} font-bold">${toPar === '0' ? 'E' : toPar}</td>
+                        <td class="px-4 py-5 text-center bg-[#1c2128] font-mono text-masters-yellow">${shots}</td>
+                        <td class="px-4 py-5 text-center text-gray-400 text-sm italic">${odds}/1</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            } catch (e) { console.error(e); }
+        }
+        updateStats();
+        setInterval(updateStats, 60000);
+    </script>
+</body>
+</html>
