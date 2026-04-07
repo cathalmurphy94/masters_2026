@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masters 2026 | Stats Deep Dive</title>
+    <title>Masters 2026 | Stats</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -29,8 +29,8 @@
 
         <div class="bg-[#161b22] border border-[#30363d] rounded-b-xl shadow-2xl overflow-hidden">
             <table class="w-full text-left border-collapse">
-                <thead class="bg-[#0d1117] text-gray-400 uppercase text-[10px] tracking-widest border-b border-[#30363d]">
-                    <tr>
+                <thead>
+                    <tr class="bg-[#0d1117] text-gray-400 uppercase text-[10px] tracking-widest border-b border-[#30363d]">
                         <th class="px-4 py-4 w-12 text-center">Rank</th>
                         <th class="px-4 py-4">Participant</th>
                         <th class="px-4 py-4 text-center">To Par</th>
@@ -38,42 +38,57 @@
                         <th class="px-4 py-4 text-center">Comb. Odds</th>
                     </tr>
                 </thead>
-                <tbody id="stats-data" class="divide-y divide-[#30363d]">
-                    </tbody>
+                <tbody id="stats-data" class="divide-y divide-[#30363d]"></tbody>
             </table>
         </div>
     </div>
 
     <script>
+        // Ensure this is your CSV link for the Display_Stats_Live tab
         const statsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=2089324932&single=true&output=csv';
 
-        async function updateStats() {
+        function parseCSV(text) {
+            const rows = text.split(/\r?\n/);
+            return rows.map(row => row.split(',').map(cell => cell.trim()));
+        }
+
+        async function update() {
             try {
-                const response = await fetch(statsUrl + '&cachebuster=' + new Date().getTime());
+                // Cachebuster forces a fresh fetch
+                const response = await fetch(statsUrl + '&cb=' + new Date().getTime());
                 const csvText = await response.text();
-                const lines = csvText.split('\n');
+                const data = parseCSV(csvText);
+                
                 const tbody = document.getElementById('stats-data');
                 tbody.innerHTML = '';
 
-                for (let i = 1; i < lines.length; i++) {
-                    const row = lines[i].split(',');
-                    if (row.length < 5) continue;
+                // Start at i=1 to skip header
+                for (let i = 1; i < data.length; i++) {
+                    const row = data[i];
+                    if (row.length < 5 || !row[1]) continue;
+
                     const [rank, name, toPar, shots, odds] = row;
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-[#1c2128]";
+                    
+                    const isUnder = toPar.startsWith('-');
+                    let displayToPar = toPar;
+                    if (toPar === '0') displayToPar = 'E';
+                    if (toPar === '') displayToPar = '...';
+
                     tr.innerHTML = `
                         <td class="px-4 py-5 text-center text-gray-500 font-bold">${rank}</td>
                         <td class="px-4 py-5 font-bold text-gray-100">${name}</td>
-                        <td class="px-4 py-5 text-center ${toPar.includes('-') ? 'text-red-500' : 'text-white'} font-bold">${toPar === '0' ? 'E' : toPar}</td>
+                        <td class="px-4 py-5 text-center ${isUnder ? 'text-red-500' : 'text-white'} font-bold">${displayToPar}</td>
                         <td class="px-4 py-5 text-center bg-[#1c2128] font-mono text-masters-yellow">${shots}</td>
                         <td class="px-4 py-5 text-center text-gray-400 text-sm italic">${odds}/1</td>
                     `;
                     tbody.appendChild(tr);
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Stats fetch error:", e); }
         }
-        updateStats();
-        setInterval(updateStats, 60000);
+        update();
+        setInterval(update, 60000);
     </script>
 </body>
 </html>
