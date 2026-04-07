@@ -23,7 +23,7 @@
         </header>
 
         <nav class="bg-[#161b22] border-x border-[#30363d] flex justify-center space-x-4 md:space-x-8 py-3 sticky top-0 z-50">
-            <a href="index.html" class="nav-link px-3 py-1 text-xs font-bold uppercase tracking-widest hover:text-[#f6c444]">Standings</a>
+            <a href="index.html" class="nav-link nav-active px-3 py-1 text-xs font-bold uppercase tracking-widest">Standings</a>
             <a href="stats.html" class="nav-link px-3 py-1 text-xs font-bold uppercase tracking-widest hover:text-[#f6c444]">Stats</a>
             <a href="cut.html" class="nav-link px-3 py-1 text-xs font-bold uppercase tracking-widest hover:text-[#f6c444]">Cut Line</a>
         </nav>
@@ -46,17 +46,15 @@
     </div>
 
     <script>
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=950728203&single=true&output=csv';
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=950728203&single=true&output=csv';
 
-        function parseCSV(text) {
-        // This regex handles commas inside quotes, just in case
+    function parseCSV(text) {
         const rows = text.split(/\r?\n/);
         return rows.map(row => row.split(',').map(cell => cell.trim()));
     }
 
     async function update() {
         try {
-            // The cachebuster '&cb=' forces the browser to bypass its own cache
             const response = await fetch(csvUrl + '&cb=' + new Date().getTime());
             const csvText = await response.text();
             const data = parseCSV(csvText);
@@ -64,26 +62,26 @@
             const tbody = document.getElementById('leaderboard-data');
             tbody.innerHTML = '';
 
-            // Start at i=1 to skip header
             for (let i = 1; i < data.length; i++) {
                 const row = data[i];
-                if (row.length < 9 || !row[1]) continue; // Skip empty rows or rows without a participant
+                if (row.length < 10 || !row[1]) continue; 
 
-                const [rank, name, total, g1, s1, g2, s2, g3, s3] = row;
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-[#1c2128] transition-colors";
+                const [rank, name, total, g1, s1, g2, s2, g3, s3, status] = row;
+                const isDQ = status && (status.includes("❌") || status.includes("CUT"));
                 
-                // Logic: Only show 'E' if the score is actually 0. 
-                // If it's blank or "Check Name", show a dash or the text.
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-[#1c2128] transition-colors border-b border-[#30363d]";
+                
+                const isUnder = total.startsWith('-');
                 let displayTotal = total;
                 if (total === '0') displayTotal = 'E';
-                if (total === '') displayTotal = '...';
-
-                const isUnder = total.startsWith('-');
+                if (isDQ) displayTotal = 'CUT';
 
                 tr.innerHTML = `
                     <td class="px-4 py-5 text-center font-bold text-gray-500 text-sm">${rank}</td>
-                    <td class="px-4 py-5 font-bold text-gray-100">${name}</td>
+                    <td class="px-4 py-5 font-bold ${isDQ ? 'text-gray-500 line-through italic' : 'text-gray-100'}">
+                        ${name} ${isDQ ? '<span class="ml-2 text-[10px] bg-red-900 text-red-200 px-2 py-0.5 rounded-full font-black uppercase">DQ</span>' : ''}
+                    </td>
                     <td class="px-4 py-5 text-center bg-[#1c2128]">
                         <span class="${isUnder ? 'text-red-500' : 'text-white'} text-xl font-bold">${displayTotal}</span>
                     </td>
@@ -108,6 +106,6 @@
     }
     update();
     setInterval(update, 60000);
-    </script>
+    </script> 
 </body>
 </html>
