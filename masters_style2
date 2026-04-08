@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masters 2026 | Standings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --masters-green: #004b23; 
+            --masters-yellow: #f6c444; 
+            --masters-red: #d91e18;
+            --masters-bg: #f3f4f6;
+        }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--masters-bg); 
+            color: #1f2937; 
+        }
+        .font-serif { font-family: 'Libre Baskerville', serif; }
+        
+        /* The Masters Header Gradient */
+        .masters-header { 
+            background: linear-gradient(135deg, #004b23 0%, #003a1b 100%); 
+            border-bottom: 4px solid var(--masters-yellow);
+        }
+
+        .nav-link { 
+            color: #6b7280; 
+            border-bottom: 2px solid transparent; 
+            transition: all 0.3s; 
+        }
+        .nav-active { 
+            color: var(--masters-green) !important; 
+            border-bottom: 2px solid var(--masters-green) !important; 
+            font-weight: 700;
+        }
+
+        /* Table Styling */
+        .leaderboard-table {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .table-header {
+            background-color: var(--masters-green);
+            color: white;
+        }
+    </style>
+</head>
+<body class="p-2 md:p-6">
+    <div class="max-w-5xl mx-auto">
+        <header class="masters-header rounded-t-xl p-8 text-center shadow-lg">
+            <h1 class="text-4xl md:text-6xl font-serif text-[#f6c444] mb-2">The Masters</h1>
+            <p class="text-white text-xs uppercase tracking-[0.4em] font-bold opacity-90">2026 Sweepstakes Standings</p>
+        </header>
+
+        <nav class="bg-white border-x border-gray-200 flex justify-center space-x-6 md:space-x-12 py-4 sticky top-0 z-50 shadow-sm">
+            <a href="index.html" class="nav-link nav-active px-3 py-1 text-xs uppercase tracking-widest">Standings</a>
+            <a href="stats.html" class="nav-link px-3 py-1 text-xs uppercase tracking-widest hover:text-[#004b23]">Stats</a>
+            <a href="cut.html" class="nav-link px-3 py-1 text-xs uppercase tracking-widest hover:text-[#004b23]">Cut Line</a>
+        </nav>
+
+        <div class="leaderboard-table overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                    <tr class="table-header uppercase text-[10px] tracking-widest">
+                        <th class="px-6 py-4 w-16 text-center">Pos</th>
+                        <th class="px-6 py-4">Participant</th>
+                        <th class="px-6 py-4 text-center">Total</th>
+                        <th class="px-6 py-4">Golfer 1</th>
+                        <th class="px-6 py-4">Golfer 2</th>
+                        <th class="px-6 py-4 border-r border-green-800">Golfer 3</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-data" class="divide-y divide-gray-100">
+                    </tbody>
+            </table>
+        </div>
+        
+        <footer class="mt-8 text-center text-gray-400 text-[10px] uppercase tracking-widest">
+            Last Updated: <span id="last-update">...</span>
+        </footer>
+    </div>
+
+    <script>
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=950728203&single=true&output=csv';
+
+    async function update() {
+        try {
+            const response = await fetch(csvUrl + '&cb=' + Date.now());
+            const buffer = await response.arrayBuffer();
+            const decoder = new TextDecoder('utf-8');
+            const csvText
