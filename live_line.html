@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masters 2026 | On the Line</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --masters-green: #004b23; --masters-yellow: #f6c444; --masters-bg: #f9fafb; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--masters-bg); color: #111827; }
+        .font-serif { font-family: 'Libre Baskerville', serif; }
+        .masters-header { background: linear-gradient(135deg, #004b23 0%, #003a1b 100%); border-bottom: 4px solid var(--masters-yellow); }
+        .nav-link { color: #6b7280; font-weight: 600; transition: all 0.2s; }
+        .nav-active { color: var(--masters-green) !important; border-bottom: 2px solid var(--masters-green) !important; }
+        .line-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #f59e0b; }
+        .pulse { animation: pulse 2.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    </style>
+</head>
+<body class="p-2 md:p-6">
+    <div class="max-w-4xl mx-auto">
+        <header class="masters-header rounded-t-xl p-8 text-center shadow-lg">
+            <h1 class="text-4xl md:text-6xl font-serif text-[#f6c444] mb-2 tracking-tight">The Masters</h1>
+            <p class="text-white text-[10px] uppercase tracking-[0.5em] font-bold opacity-80 italic">On the Line: The Friday Bubble</p>
+        </header>
+
+        <nav class="bg-white border-x border-gray-200 flex justify-center space-x-4 md:space-x-8 py-4 sticky top-0 z-50 shadow-sm overflow-x-auto whitespace-nowrap px-4">
+            <a href="masters_style2.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">Standings</a>
+            <a href="masters_stats.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">Stats</a>
+            <a href="masters_cut.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">Cut Line</a>
+            <a href="live_line.html" class="nav-link nav-active px-3 py-1 text-[10px] uppercase tracking-widest">On the Line</a>
+        </nav>
+
+        <div class="bg-amber-50 border-x border-b border-amber-100 p-4 text-center">
+            <p class="text-[10px] text-amber-800 font-bold uppercase tracking-widest">
+                Participants with golfers within <span class="underline">3 strokes</span> of the projected cut
+            </p>
+        </div>
+
+        <div id="on-the-line-list" class="grid grid-cols-1 gap-4 mt-8">
+            <p class="text-center text-gray-400 py-20 italic font-serif">Checking the bubble...</p>
+        </div>
+    </div>
+
+    <script>
+        const boardUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=950728203&single=true&output=csv';
+        const cutUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=103685137&single=true&output=csv';
+
+        async function update() {
+            try {
+                const cutRes = await fetch(cutUrl + '&cb=' + Date.now());
+                const cutTxt = await cutRes.text();
+                const cutRows = cutTxt.split('\n').slice(1);
+                
+                let bubbleGolfers = {}; 
+                cutRows.forEach(line => {
+                    const c = line.split(',').map(x => x.trim());
+                    if (c.length < 3) return;
+                    const toCut = parseInt(c[2]);
+                    const isCut = c[3].toLowerCase().includes('yes') || c[3].includes('❌');
+                    // "On the line" range: 3 clear to 1 back
+                    if (!isCut && toCut >= -3 && toCut <= 1) {
+                        bubbleGolfers[c[0]] = { toCut: toCut, score: c[1] };
+                    }
+                });
+
+                const boardRes = await fetch(boardUrl + '&cb=' + Date.now());
+                const boardTxt = await boardRes.text();
+                const boardRows = boardTxt.split('\n').slice(1);
+                
+                const container = document.getElementById('on-the-line-list');
+                container.innerHTML = '';
+                let matchCount = 0;
+
+                boardRows.forEach(line => {
+                    const r = line.split(',').map(x => x.trim());
+                    if (r.length < 10 || r[9].includes('❌')) return;
+
+                    const team = [r[3], r[5], r[7]];
+                    const threatened = team.filter(g => bubbleGolfers[g]);
+
+                    if (threatened.length > 0) {
+                        matchCount++;
+                        const card = document.createElement('div');
+                        card.className = "line-card p-6 flex flex-col md:flex-row justify-between items-center gap-4";
+                        
+                        let golferHtml = threatened.map(g => `
+                            <div class="bg-amber-50 px-4 py-2 rounded border border-amber-100 text-center">
+                                <p class="text-xs font-bold text-gray-900">${g}</p>
+                                <p class="text-lg font-serif font-bold text-amber-700">${bubbleGolfers[g].score}</p>
+                                <p class="text-[9px] uppercase font-black text-amber-500">
+                                    ${bubbleGolfers[g].toCut <= 0 ? Math.abs(bubbleGolfers[g].toCut) + ' CLEAR' : bubbleGolfers[g].toCut + ' BACK'}
+                                </p>
+                            </div>
+                        `).join('');
+
+                        card.innerHTML = `
+                            <div class="flex items-center space-x-4">
+                                <span class="text-2xl pulse">⚠️</span>
+                                <div>
+                                    <h3 class="font-serif text-xl font-bold text-gray-900">${r[1]}</h3>
+                                    <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Current Pos: ${r[0]}</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                ${golferHtml}
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    }
+                });
+
+                if (matchCount === 0) {
+                    container.innerHTML = `<div class="text-center py-20 text-gray-400 italic font-serif">No participants are currently on the bubble.</div>`;
+                }
+
+            } catch (e) { console.error(e); }
+        }
+        update();
+        setInterval(update, 60000);
+    </script>
+</body>
+</html>
