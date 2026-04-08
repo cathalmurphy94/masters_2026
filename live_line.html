@@ -13,16 +13,18 @@
         .masters-header { background: linear-gradient(135deg, #004b23 0%, #003a1b 100%); border-bottom: 4px solid var(--masters-yellow); }
         .nav-link { color: #6b7280; font-weight: 600; transition: all 0.2s; }
         .nav-active { color: var(--masters-green) !important; border-bottom: 2px solid var(--masters-green) !important; }
-        .line-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #f59e0b; }
-        .pulse { animation: pulse 2.5s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        
+        .line-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .golfer-box { transition: all 0.3s ease; }
+        .pulse-slow { animation: pulse 3s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     </style>
 </head>
 <body class="p-2 md:p-6">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-5xl mx-auto">
         <header class="masters-header rounded-t-xl p-8 text-center shadow-lg">
             <h1 class="text-4xl md:text-6xl font-serif text-[#f6c444] mb-2 tracking-tight">The Masters</h1>
-            <p class="text-white text-[10px] uppercase tracking-[0.5em] font-bold opacity-80 italic">On the Line: The Friday Bubble</p>
+            <p class="text-white text-[10px] uppercase tracking-[0.5em] font-bold opacity-80 italic">On the Line: The Friday Survival Tracker</p>
         </header>
 
         <nav class="bg-white border-x border-gray-200 flex justify-center space-x-4 md:space-x-8 py-4 sticky top-0 z-50 shadow-sm overflow-x-auto whitespace-nowrap px-4">
@@ -32,14 +34,13 @@
             <a href="live_line.html" class="nav-link nav-active px-3 py-1 text-[10px] uppercase tracking-widest">On the Line</a>
         </nav>
 
-        <div class="bg-amber-50 border-x border-b border-amber-100 p-4 text-center">
-            <p class="text-[10px] text-amber-800 font-bold uppercase tracking-widest">
-                Participants with golfers within <span class="underline">3 strokes</span> of the projected cut
-            </p>
+        <div class="bg-white border-x border-b border-gray-100 p-6 text-center shadow-sm">
+            <p class="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em] mb-1">Projected Cut Line</p>
+            <div id="cut-display" class="text-4xl font-serif font-bold text-green-900">...</div>
         </div>
 
-        <div id="on-the-line-list" class="grid grid-cols-1 gap-4 mt-8">
-            <p class="text-center text-gray-400 py-20 italic font-serif">Checking the bubble...</p>
+        <div id="on-the-line-list" class="grid grid-cols-1 gap-6 mt-8 pb-12">
+            <p class="text-center text-gray-400 py-20 italic font-serif">Syncing live scores...</p>
         </div>
     </div>
 
@@ -49,22 +50,39 @@
 
         async function update() {
             try {
+                // 1. Get Cut Data
                 const cutRes = await fetch(cutUrl + '&cb=' + Date.now());
                 const cutTxt = await cutRes.text();
                 const cutRows = cutTxt.split('\n').slice(1);
                 
-                let bubbleGolfers = {}; 
+                let golferStatus = {}; 
+                let projCut = "E";
+
+                if (cutRows.length > 0) {
+                    const first = cutRows[0].split(',');
+                    const rawLine = parseInt(first[1]) - parseInt(first[2]);
+                    projCut = rawLine > 0 ? '+' + rawLine : (rawLine === 0 ? 'E' : rawLine);
+                    document.getElementById('cut-display').innerText = projCut;
+                }
+
                 cutRows.forEach(line => {
                     const c = line.split(',').map(x => x.trim());
                     if (c.length < 3) return;
                     const toCut = parseInt(c[2]);
                     const isCut = c[3].toLowerCase().includes('yes') || c[3].includes('❌');
-                    // "On the line" range: 3 clear to 1 back
-                    if (!isCut && toCut >= -3 && toCut <= 1) {
-                        bubbleGolfers[c[0]] = { toCut: toCut, score: c[1] };
+                    
+                    let type = 'SAFE';
+                    if (!isCut) {
+                        if (toCut > 0) type = 'OVER';
+                        else if (toCut >= -3) type = 'DANGER';
+                    } else {
+                        type = 'CUT';
                     }
+                    
+                    golferStatus[c[0]] = { type, toCut, score: c[1] };
                 });
 
+                // 2. Get Participants
                 const boardRes = await fetch(boardUrl + '&cb=' + Date.now());
                 const boardTxt = await boardRes.text();
                 const boardRows = boardTxt.split('\n').slice(1);
@@ -77,34 +95,49 @@
                     const r = line.split(',').map(x => x.trim());
                     if (r.length < 10 || r[9].includes('❌')) return;
 
-                    const team = [r[3], r[5], r[7]];
-                    const threatened = team.filter(g => bubbleGolfers[g]);
+                    const team = [
+                        { name: r[3], stats: golferStatus[r[3]] },
+                        { name: r[5], stats: golferStatus[r[5]] },
+                        { name: r[7], stats: golferStatus[r[7]] }
+                    ];
 
-                    if (threatened.length > 0) {
+                    // Criteria to appear: At least one golfer is DANGER or OVER
+                    const isThreatened = team.some(g => g.stats && (g.stats.type === 'DANGER' || g.stats.type === 'OVER'));
+
+                    if (isThreatened) {
                         matchCount++;
                         const card = document.createElement('div');
-                        card.className = "line-card p-6 flex flex-col md:flex-row justify-between items-center gap-4";
+                        card.className = "line-card overflow-hidden border border-gray-100 shadow-sm flex flex-col md:flex-row";
                         
-                        let golferHtml = threatened.map(g => `
-                            <div class="bg-amber-50 px-4 py-2 rounded border border-amber-100 text-center">
-                                <p class="text-xs font-bold text-gray-900">${g}</p>
-                                <p class="text-lg font-serif font-bold text-amber-700">${bubbleGolfers[g].score}</p>
-                                <p class="text-[9px] uppercase font-black text-amber-500">
-                                    ${bubbleGolfers[g].toCut <= 0 ? Math.abs(bubbleGolfers[g].toCut) + ' CLEAR' : bubbleGolfers[g].toCut + ' BACK'}
-                                </p>
-                            </div>
-                        `).join('');
+                        let golfersHtml = team.map(g => {
+                            const s = g.stats || { type: 'SAFE', toCut: -99, score: '...' };
+                            let colorClasses = "bg-gray-50 border-gray-100 text-gray-400 opacity-40"; // Default Safe
+                            let label = "Safe";
+                            
+                            if (s.type === 'DANGER') {
+                                colorClasses = "bg-amber-50 border-amber-200 text-amber-800 ring-2 ring-amber-100 ring-offset-1 pulse-slow";
+                                label = s.toCut === 0 ? "ON LINE" : Math.abs(s.toCut) + " CLEAR";
+                            } else if (s.type === 'OVER') {
+                                colorClasses = "bg-red-50 border-red-200 text-red-800 ring-2 ring-red-100 ring-offset-1";
+                                label = s.toCut + " BACK";
+                            }
+
+                            return `
+                                <div class="flex-1 p-4 border-l first:border-l-0 ${colorClasses} golfer-box">
+                                    <p class="text-[9px] font-black uppercase tracking-tighter mb-1">${label}</p>
+                                    <p class="text-xs font-bold truncate">${g.name}</p>
+                                    <p class="text-xl font-serif font-bold">${s.score}</p>
+                                </div>
+                            `;
+                        }).join('');
 
                         card.innerHTML = `
-                            <div class="flex items-center space-x-4">
-                                <span class="text-2xl pulse">⚠️</span>
-                                <div>
-                                    <h3 class="font-serif text-xl font-bold text-gray-900">${r[1]}</h3>
-                                    <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Current Pos: ${r[0]}</p>
-                                </div>
+                            <div class="p-6 md:w-1/3 bg-white flex flex-col justify-center">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Position: ${r[0]}</span>
+                                <h3 class="font-serif text-2xl font-bold text-gray-900">${r[1]}</h3>
                             </div>
-                            <div class="flex space-x-2">
-                                ${golferHtml}
+                            <div class="flex flex-col md:flex-row md:w-2/3 border-t md:border-t-0 md:border-l border-gray-100">
+                                ${golfersHtml}
                             </div>
                         `;
                         container.appendChild(card);
@@ -112,7 +145,11 @@
                 });
 
                 if (matchCount === 0) {
-                    container.innerHTML = `<div class="text-center py-20 text-gray-400 italic font-serif">No participants are currently on the bubble.</div>`;
+                    container.innerHTML = `
+                        <div class="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
+                            <p class="text-3xl mb-2">⛳</p>
+                            <p class="text-gray-500 font-serif italic">The field has settled. No active participants are currently on the bubble.</p>
+                        </div>`;
                 }
 
             } catch (e) { console.error(e); }
