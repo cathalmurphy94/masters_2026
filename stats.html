@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --masters-green: #004b23; --masters-yellow: #f6c444; --masters-red: #d91e18; }
+        :root { --masters-green: #004b23; --masters-yellow: #f6c444; }
         body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e6edf3; }
         .font-serif { font-family: 'Libre Baskerville', serif; }
         .masters-header { background: linear-gradient(to bottom, #004b23, #003a1b); border-bottom: 4px solid var(--masters-yellow); }
@@ -46,56 +45,52 @@
     </div>
 
     <script>
-    const statsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=2089324932&single=true&output=csv';
+        const statsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=2089324932&single=true&output=csv';
 
-    function parseCSV(text) {
-        const rows = text.split(/\r?\n/);
-        return rows.map(row => row.split(',').map(cell => cell.trim()));
-    }
-
-    async function update() {
-        try {
-            const response = await fetch(statsUrl + '&cb=' + new Date().getTime());
-            const csvText = await response.text();
-            const data = parseCSV(csvText);
-            const tbody = document.getElementById('stats-data');
-            tbody.innerHTML = '';
-
-            for (let i = 1; i < data.length; i++) {
-                const row = data[i];
-                if (!row || row.length < 6 || !row[1]) continue;
-
-                const [rank, name, toPar, shots, odds, status] = row;
-                const safeStatus = String(status || "");
-                const isDQ = safeStatus.includes("❌") || safeStatus.includes("CUT");
+        async function update() {
+            try {
+                const response = await fetch(statsUrl + '&cb=' + Date.now());
+                const buffer = await response.arrayBuffer();
+                const decoder = new TextDecoder('utf-8');
+                const csvText = decoder.decode(buffer);
                 
-                const tr = document.createElement('tr');
-                tr.className = `transition-colors border-b border-[#30363d] ${isDQ ? 'opacity-30 bg-[#0d1117]' : 'hover:bg-[#1c2128]'}`;
-                
-                const safeToPar = String(toPar || "E");
-                const isUnder = safeToPar.startsWith('-');
-                
-                tr.innerHTML = `
-                    <td class="px-4 py-5 text-center text-gray-500 font-bold">${isDQ ? '—' : rank}</td>
-                    <td class="px-4 py-5 font-bold ${isDQ ? 'line-through text-gray-400' : 'text-gray-100'}">
-                        ${name} ${isDQ ? '<span class="text-[9px] block text-red-500 font-black tracking-tighter uppercase">DQ</span>' : ''}
-                    </td>
-                    <td class="px-4 py-5 text-center font-bold ${isDQ ? 'text-gray-600' : (isUnder ? 'text-red-500' : 'text-white')}">
-                        ${isDQ ? 'CUT' : (safeToPar === '0' || safeToPar === 'E' ? 'E' : safeToPar)}
-                    </td>
-                    <td class="px-4 py-5 text-center bg-[#1c2128] font-mono text-masters-yellow">
-                        ${isDQ ? '—' : shots}
-                    </td>
-                    <td class="px-4 py-5 text-center text-gray-400 text-sm italic">
-                        ${odds}/1
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            }
-        } catch (e) { console.error("Stats error:", e); }
-    }
-    update();
-    setInterval(update, 60000);
-</script>
+                const rows = csvText.split(/\r?\n/).map(row => row.split(',').map(cell => cell.trim()));
+                const tbody = document.getElementById('stats-data');
+                tbody.innerHTML = '';
+
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length < 6 || !row[1]) continue;
+
+                    const [rank, name, toPar, shots, odds, status] = row;
+                    const isDQ = status && (status.includes("❌") || status.includes("CUT") || status.includes("‚"));
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = `transition-colors border-b border-[#30363d] ${isDQ ? 'opacity-30 bg-[#0d1117]' : 'hover:bg-[#1c2128]'}`;
+                    
+                    const safeToPar = String(toPar || "");
+                    const isUnder = safeToPar.startsWith('-');
+                    let displayToPar = (safeToPar.includes('.') || safeToPar === "") ? "..." : (safeToPar === '0' ? 'E' : safeToPar);
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-5 text-center text-gray-500 font-bold">${isDQ ? '—' : rank}</td>
+                        <td class="px-4 py-5 font-bold ${isDQ ? 'line-through text-gray-400' : 'text-gray-100'}">
+                            ${name} ${isDQ ? '<span class="text-[9px] block text-red-500 font-black tracking-tighter uppercase">DQ</span>' : ''}
+                        </td>
+                        <td class="px-4 py-5 text-center font-bold ${isDQ ? 'text-gray-600' : (isUnder ? 'text-red-500' : 'text-white')}">
+                            ${isDQ ? 'CUT' : displayToPar}
+                        </td>
+                        <td class="px-4 py-5 text-center bg-[#1c2128] font-mono text-masters-yellow">
+                            ${isDQ ? '—' : (shots.includes('.') ? '...' : shots)}
+                        </td>
+                        <td class="px-4 py-5 text-center text-gray-400 text-sm italic">${odds}/1</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            } catch (e) { console.error("Stats Error:", e); }
+        }
+        update();
+        setInterval(update, 60000);
+    </script>
 </body>
 </html>
