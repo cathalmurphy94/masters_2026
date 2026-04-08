@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,13 +64,14 @@
 
                 for (let i = 1; i < data.length; i++) {
                     const row = data[i];
+                    // Now checking for 6 columns
                     if (row.length < 6 || !row[1]) continue;
 
                     const [rank, name, toPar, shots, odds, status] = row;
                     const isDQ = status && (status.includes("❌") || status.includes("CUT"));
                     
                     const tr = document.createElement('tr');
-                    // Style: If DQ, make it very dim
+                    // Applies the faded look to your row
                     tr.className = `transition-colors border-b border-[#30363d] ${isDQ ? 'opacity-30 bg-[#0d1117]' : 'hover:bg-[#1c2128]'}`;
                     
                     const isUnder = toPar.startsWith('-');
@@ -80,7 +82,7 @@
                             ${name} ${isDQ ? '<span class="text-[9px] block text-red-500 font-black tracking-tighter uppercase">DQ</span>' : ''}
                         </td>
                         <td class="px-4 py-5 text-center font-bold ${isDQ ? 'text-gray-600' : (isUnder ? 'text-red-500' : 'text-white')}">
-                            ${isDQ ? 'CUT' : (toPar === '0' ? 'E' : toPar)}
+                            ${isDQ ? 'CUT' : (toPar === '0' || toPar === 'E' ? 'E' : toPar)}
                         </td>
                         <td class="px-4 py-5 text-center bg-[#1c2128] font-mono text-masters-yellow">
                             ${isDQ ? '—' : shots}
