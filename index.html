@@ -45,6 +45,7 @@
         </div>
     </div>
 
+
     <script>
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=950728203&single=true&output=csv';
 
@@ -58,13 +59,12 @@
             const response = await fetch(csvUrl + '&cb=' + new Date().getTime());
             const csvText = await response.text();
             const data = parseCSV(csvText);
-            
             const tbody = document.getElementById('leaderboard-data');
             tbody.innerHTML = '';
 
             for (let i = 1; i < data.length; i++) {
                 const row = data[i];
-                if (row.length < 10 || !row[1]) continue; 
+                if (!row || row.length < 9 || !row[1]) continue;
 
                 const [rank, name, total, g1, s1, g2, s2, g3, s3, status] = row;
                 const isDQ = status && (status.includes("❌") || status.includes("CUT"));
@@ -72,9 +72,10 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-[#1c2128] transition-colors border-b border-[#30363d]";
                 
-                const isUnder = total.startsWith('-');
-                let displayTotal = total;
-                if (total === '0') displayTotal = 'E';
+                // Fail-safe string check
+                const safeTotal = String(total || "");
+                const isUnder = safeTotal.startsWith('-');
+                let displayTotal = safeTotal === '0' ? 'E' : safeTotal;
                 if (isDQ) displayTotal = 'CUT';
 
                 tr.innerHTML = `
@@ -86,26 +87,24 @@
                         <span class="${isUnder ? 'text-red-500' : 'text-white'} text-xl font-bold">${displayTotal}</span>
                     </td>
                     <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">
-                        <div class="text-gray-200">${g1}</div>
-                        <div class="${s1.includes('-') ? 'text-red-500' : 'text-gray-400'}">${s1}</div>
+                        <div class="text-gray-200">${g1 || "..."}</div>
+                        <div class="${(s1 || "").includes('-') ? 'text-red-500' : 'text-gray-400'}">${s1 || ""}</div>
                     </td>
                     <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">
-                        <div class="text-gray-200">${g2}</div>
-                        <div class="${s2.includes('-') ? 'text-red-500' : 'text-gray-400'}">${s2}</div>
+                        <div class="text-gray-200">${g2 || "..."}</div>
+                        <div class="${(s2 || "").includes('-') ? 'text-red-500' : 'text-gray-400'}">${s2 || ""}</div>
                     </td>
                     <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">
-                        <div class="text-gray-200">${g3}</div>
-                        <div class="${s3.includes('-') ? 'text-red-500' : 'text-gray-400'}">${s3}</div>
+                        <div class="text-gray-200">${g3 || "..."}</div>
+                        <div class="${(s3 || "").includes('-') ? 'text-red-500' : 'text-gray-400'}">${s3 || ""}</div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             }
-        } catch (e) { 
-            console.error("Fetch error:", e);
-        }
+        } catch (e) { console.error("Index error:", e); }
     }
     update();
     setInterval(update, 60000);
-    </script> 
+</script>
 </body>
 </html>
