@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masters 2026 | Stats</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --masters-green: #004b23; --masters-yellow: #f6c444; --masters-bg: #f9fafb; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--masters-bg); color: #111827; }
+        .font-serif { font-family: 'Libre Baskerville', serif; }
+        .masters-header { background: linear-gradient(135deg, #004b23 0%, #003a1b 100%); border-bottom: 4px solid var(--masters-yellow); }
+        .nav-link { color: #6b7280; font-weight: 600; transition: all 0.2s; }
+        .nav-active { color: var(--masters-green) !important; border-bottom: 2px solid var(--masters-green) !important; }
+        .stats-container { background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="p-2 md:p-6">
+    <div class="max-w-5xl mx-auto">
+        <header class="masters-header rounded-t-xl p-8 text-center shadow-lg">
+            <h1 class="text-4xl md:text-6xl font-serif text-[#f6c444] mb-2 tracking-tight">The Masters</h1>
+            <p class="text-white text-[10px] uppercase tracking-[0.5em] font-bold opacity-80">Deep Dive: Team Statistics</p>
+        </header>
+
+        <nav class="bg-white border-x border-gray-200 flex justify-center space-x-8 py-4 sticky top-0 z-50 shadow-sm">
+            <a href="masters_style2.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest">Standings</a>
+            <a href="masters_stats.html" class="nav-link nav-active px-3 py-1 text-[10px] uppercase tracking-widest">Stats</a>
+            <a href="masters_cut.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest">Cut Line</a>
+        </nav>
+
+        <div class="stats-container overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-[#004b23] text-white uppercase text-[10px] tracking-widest">
+                        <th class="px-6 py-4 w-16 text-center">Rank</th>
+                        <th class="px-6 py-4">Participant</th>
+                        <th class="px-6 py-4 text-center">To Par</th>
+                        <th class="px-6 py-4 text-center bg-[#003a1b]">Shots</th>
+                        <th class="px-6 py-4 text-center">Combined Odds</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-data" class="divide-y divide-gray-100"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const statsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=2089324932&single=true&output=csv';
+
+        async function update() {
+            try {
+                const response = await fetch(statsUrl + '&cb=' + Date.now());
+                const buffer = await response.arrayBuffer();
+                const csvText = new TextDecoder('utf-8').decode(buffer);
+                const rows = csvText.split(/\r?\n/).map(row => row.split(',').map(cell => cell.trim()));
+                const tbody = document.getElementById('stats-data');
+                tbody.innerHTML = '';
+
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length < 5 || !row[1]) continue;
+
+                    const [rank, name, toPar, shots, odds, status] = row;
+                    const isDQ = status && (status.includes("❌") || status.includes("CUT"));
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = isDQ ? 'bg-gray-50 opacity-50' : 'hover:bg-gray-50';
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-6 text-center font-bold text-gray-400">${isDQ ? '—' : rank}</td>
+                        <td class="px-6 py-6">
+                            <div class="font-serif font-bold text-gray-900 ${isDQ ? 'line-through italic' : ''}">${name}</div>
+                        </td>
+                        <td class="px-6 py-6 text-center font-serif font-bold ${toPar.startsWith('-') ? 'text-red-600' : 'text-gray-900'}">
+                            ${isDQ ? 'CUT' : (toPar === '0' ? 'E' : toPar)}
+                        </td>
+                        <td class="px-6 py-6 text-center bg-gray-50/50 font-mono text-green-800 font-bold">
+                            ${isDQ ? '—' : shots}
+                        </td>
+                        <td class="px-6 py-6 text-center text-gray-400 text-sm italic">${odds}/1</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            } catch (e) { console.error(e); }
+        }
+        update();
+        setInterval(update, 60000);
+    </script>
+</body>
+</html>
