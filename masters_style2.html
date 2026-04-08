@@ -10,78 +10,58 @@
         :root { 
             --masters-green: #004b23; 
             --masters-yellow: #f6c444; 
-            --masters-red: #d91e18;
-            --masters-bg: #f3f4f6;
+            --masters-bg: #f9fafb;
         }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: var(--masters-bg); 
-            color: #1f2937; 
-        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--masters-bg); color: #111827; }
         .font-serif { font-family: 'Libre Baskerville', serif; }
-        
-        /* The Masters Header Gradient */
         .masters-header { 
             background: linear-gradient(135deg, #004b23 0%, #003a1b 100%); 
             border-bottom: 4px solid var(--masters-yellow);
         }
-
-        .nav-link { 
-            color: #6b7280; 
-            border-bottom: 2px solid transparent; 
-            transition: all 0.3s; 
-        }
-        .nav-active { 
-            color: var(--masters-green) !important; 
-            border-bottom: 2px solid var(--masters-green) !important; 
-            font-weight: 700;
-        }
-
-        /* Table Styling */
-        .leaderboard-table {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .table-header {
-            background-color: var(--masters-green);
-            color: white;
-        }
+        .nav-link { color: #6b7280; font-weight: 600; transition: all 0.2s; }
+        .nav-active { color: var(--masters-green) !important; border-bottom: 2px solid var(--masters-green) !important; }
+        .leaderboard-container { background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .row-dq { background-color: #fcfcfc; opacity: 0.5; }
     </style>
 </head>
 <body class="p-2 md:p-6">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-6xl mx-auto">
         <header class="masters-header rounded-t-xl p-8 text-center shadow-lg">
-            <h1 class="text-4xl md:text-6xl font-serif text-[#f6c444] mb-2">The Masters</h1>
-            <p class="text-white text-xs uppercase tracking-[0.4em] font-bold opacity-90">2026 Sweepstakes Standings</p>
+            <h1 class="text-4xl md:text-6xl font-serif text-[#f6c444] mb-2 tracking-tight">The Masters</h1>
+            <p class="text-white text-[10px] uppercase tracking-[0.5em] font-bold opacity-80">2026 Sweepstakes Standings</p>
         </header>
 
-        <nav class="bg-white border-x border-gray-200 flex justify-center space-x-6 md:space-x-12 py-4 sticky top-0 z-50 shadow-sm">
-            <a href="index.html" class="nav-link nav-active px-3 py-1 text-xs uppercase tracking-widest">Standings</a>
-            <a href="stats.html" class="nav-link px-3 py-1 text-xs uppercase tracking-widest hover:text-[#004b23]">Stats</a>
-            <a href="cut.html" class="nav-link px-3 py-1 text-xs uppercase tracking-widest hover:text-[#004b23]">Cut Line</a>
+        <nav class="bg-white border-x border-gray-200 flex justify-center space-x-8 py-4 sticky top-0 z-50 shadow-sm">
+            <a href="index.html" class="nav-link nav-active px-3 py-1 text-[10px] uppercase tracking-widest">Standings</a>
+            <a href="stats.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">Stats</a>
+            <a href="cut.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">Cut Line</a>
         </nav>
 
-        <div class="leaderboard-table overflow-x-auto">
-            <table class="w-full text-left border-collapse min-w-[700px]">
-                <thead>
-                    <tr class="table-header uppercase text-[10px] tracking-widest">
-                        <th class="px-6 py-4 w-16 text-center">Pos</th>
-                        <th class="px-6 py-4">Participant</th>
-                        <th class="px-6 py-4 text-center">Total</th>
-                        <th class="px-6 py-4">Golfer 1</th>
-                        <th class="px-6 py-4">Golfer 2</th>
-                        <th class="px-6 py-4 border-r border-green-800">Golfer 3</th>
-                    </tr>
-                </thead>
-                <tbody id="leaderboard-data" class="divide-y divide-gray-100">
-                    </tbody>
-            </table>
+        <div class="leaderboard-container overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="bg-[#004b23] text-white uppercase text-[10px] tracking-[0.2em]">
+                            <th class="px-6 py-4 w-16 text-center">Pos</th>
+                            <th class="px-6 py-4">Participant</th>
+                            <th class="px-6 py-4 text-center bg-[#003a1b]">Total</th>
+                            <th class="px-6 py-4">Golfer 1</th>
+                            <th class="px-6 py-4">Golfer 2</th>
+                            <th class="px-6 py-4">Golfer 3</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-data" class="divide-y divide-gray-100">
+                        </tbody>
+                </table>
+            </div>
         </div>
         
-        <footer class="mt-8 text-center text-gray-400 text-[10px] uppercase tracking-widest">
-            Last Updated: <span id="last-update">...</span>
-        </footer>
+        <div class="mt-6 flex justify-between items-center px-4">
+            <div id="debug-status" class="text-[9px] text-gray-400 font-mono uppercase">System Active</div>
+            <div class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                Last Live Update: <span id="last-update" class="text-green-700 font-mono">Connecting...</span>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -91,5 +71,74 @@
         try {
             const response = await fetch(csvUrl + '&cb=' + Date.now());
             const buffer = await response.arrayBuffer();
-            const decoder = new TextDecoder('utf-8');
-            const csvText
+            const csvText = new TextDecoder('utf-8').decode(buffer);
+            
+            const rows = csvText.split(/\r?\n/).map(row => row.split(',').map(cell => cell.trim()));
+            const tbody = document.getElementById('leaderboard-data');
+            
+            if (rows.length < 2) {
+                document.getElementById('debug-status').innerText = "Empty Sheet Detected";
+                return;
+            }
+
+            tbody.innerHTML = '';
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                // Safety: Skip rows that don't have enough data
+                if (!row || row.length < 9 || !row[1]) continue;
+
+                try {
+                    const [rank, name, total, g1, s1, g2, s2, g3, s3, status] = row;
+                    const isDQ = status && (status.includes("❌") || status.includes("CUT") || status.includes("‚"));
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = `transition-colors ${isDQ ? 'row-dq' : 'hover:bg-gray-50'}`;
+                    
+                    const safeTotal = String(total || "");
+                    const isUnder = safeTotal.startsWith('-');
+                    
+                    // Safety logic for dots vs scores
+                    let displayTotal = isDQ ? 'CUT' : (safeTotal === '0' && (s1||"").includes('.') ? "..." : (safeTotal === '0' ? 'E' : safeTotal));
+                    let scoreColor = isDQ ? 'text-gray-400' : (isUnder ? 'text-red-600' : 'text-gray-900');
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-6 text-center font-bold text-gray-400 text-sm">${isDQ ? '—' : rank}</td>
+                        <td class="px-6 py-6">
+                            <div class="font-serif text-lg font-bold text-gray-900 ${isDQ ? 'line-through italic opacity-50' : ''}">${name}</div>
+                            <div class="flex items-center mt-1">
+                                <span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded border ${isDQ ? 'border-red-200 text-red-400' : 'border-green-200 text-green-600'}">
+                                    ${isDQ ? 'Out' : 'Active'}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-6 text-center bg-gray-50/30">
+                            <span class="${scoreColor} text-2xl font-serif font-bold">${displayTotal}</span>
+                        </td>
+                        ${[ [g1,s1], [g2,s2], [g3,s3] ].map(([g, s]) => `
+                            <td class="px-6 py-6 text-[11px]">
+                                <div class="text-gray-900 font-bold mb-0.5 whitespace-nowrap">${g || ''}</div>
+                                <div class="font-serif font-bold ${(s||"").includes('-') ? 'text-red-600' : 'text-gray-400'}">
+                                    ${(s||"").includes('.') ? '...' : (s || '')}
+                                </div>
+                            </td>
+                        `).join('')}
+                    `;
+                    tbody.appendChild(tr);
+                } catch (rowError) {
+                    console.error("Skipping malformed row:", i, rowError);
+                }
+            }
+            document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+            document.getElementById('debug-status').innerText = "Live: OK";
+        } catch (e) { 
+            console.error("Main Update Error:", e);
+            document.getElementById('debug-status').innerText = "Data Error - Retrying...";
+        }
+    }
+
+    update();
+    setInterval(update, 60000);
+    </script>
+</body>
+</html>
