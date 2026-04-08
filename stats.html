@@ -19,7 +19,7 @@
     <div class="max-w-4xl mx-auto">
         <header class="masters-header rounded-t-xl p-6 text-center shadow-2xl">
             <h1 class="text-3xl md:text-5xl font-serif text-[#f6c444]">The Masters</h1>
-            <p class="text-white text-[10px] uppercase tracking-[0.3em] mt-2 font-semibold">Deep Dive: Team Statistics</p>
+            <p class="text-white text-[10px] uppercase tracking-[0.3em] mt-2 font-semibold italic">Deep Dive: Team Statistics</p>
         </header>
 
         <nav class="bg-[#161b22] border-x border-[#30363d] flex justify-center space-x-4 md:space-x-8 py-3 sticky top-0 z-50">
@@ -45,7 +45,6 @@
     </div>
 
     <script>
-        // Ensure this is your CSV link for the Display_Stats_Live tab
         const statsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=2089324932&single=true&output=csv';
 
         function parseCSV(text) {
@@ -55,7 +54,6 @@
 
         async function update() {
             try {
-                // Cachebuster forces a fresh fetch
                 const response = await fetch(statsUrl + '&cb=' + new Date().getTime());
                 const csvText = await response.text();
                 const data = parseCSV(csvText);
@@ -63,26 +61,33 @@
                 const tbody = document.getElementById('stats-data');
                 tbody.innerHTML = '';
 
-                // Start at i=1 to skip header
                 for (let i = 1; i < data.length; i++) {
                     const row = data[i];
-                    if (row.length < 5 || !row[1]) continue;
+                    if (row.length < 6 || !row[1]) continue;
 
-                    const [rank, name, toPar, shots, odds] = row;
+                    const [rank, name, toPar, shots, odds, status] = row;
+                    const isDQ = status && (status.includes("❌") || status.includes("CUT"));
+                    
                     const tr = document.createElement('tr');
-                    tr.className = "hover:bg-[#1c2128]";
+                    // Style: If DQ, make it very dim
+                    tr.className = `transition-colors border-b border-[#30363d] ${isDQ ? 'opacity-30 bg-[#0d1117]' : 'hover:bg-[#1c2128]'}`;
                     
                     const isUnder = toPar.startsWith('-');
-                    let displayToPar = toPar;
-                    if (toPar === '0') displayToPar = 'E';
-                    if (toPar === '') displayToPar = '...';
-
+                    
                     tr.innerHTML = `
-                        <td class="px-4 py-5 text-center text-gray-500 font-bold">${rank}</td>
-                        <td class="px-4 py-5 font-bold text-gray-100">${name}</td>
-                        <td class="px-4 py-5 text-center ${isUnder ? 'text-red-500' : 'text-white'} font-bold">${displayToPar}</td>
-                        <td class="px-4 py-5 text-center bg-[#1c2128] font-mono text-masters-yellow">${shots}</td>
-                        <td class="px-4 py-5 text-center text-gray-400 text-sm italic">${odds}/1</td>
+                        <td class="px-4 py-5 text-center text-gray-500 font-bold">${isDQ ? '—' : rank}</td>
+                        <td class="px-4 py-5 font-bold ${isDQ ? 'line-through text-gray-400' : 'text-gray-100'}">
+                            ${name} ${isDQ ? '<span class="text-[9px] block text-red-500 font-black tracking-tighter uppercase">DQ</span>' : ''}
+                        </td>
+                        <td class="px-4 py-5 text-center font-bold ${isDQ ? 'text-gray-600' : (isUnder ? 'text-red-500' : 'text-white')}">
+                            ${isDQ ? 'CUT' : (toPar === '0' ? 'E' : toPar)}
+                        </td>
+                        <td class="px-4 py-5 text-center bg-[#1c2128] font-mono text-masters-yellow">
+                            ${isDQ ? '—' : shots}
+                        </td>
+                        <td class="px-4 py-5 text-center text-gray-400 text-sm italic">
+                            ${odds}/1
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 }
