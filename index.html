@@ -65,23 +65,33 @@
                 if (!row || row.length < 10 || !row[1]) continue;
 
                 const [rank, name, total, g1, s1, g2, s2, g3, s3, status] = row;
+                
+                // Identify if player is DQ/Cut
                 const isDQ = status && (status.includes("❌") || status.includes("CUT") || status.includes("‚"));
                 
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-[#1c2128] transition-colors border-b border-[#30363d]";
+                // visual Fade for DQ'd teams (opacity-30)
+                tr.className = `transition-colors border-b border-[#30363d] ${isDQ ? 'opacity-30 bg-[#0d1117]' : 'hover:bg-[#1c2128]'}`;
                 
                 const safeTotal = String(total || "");
                 const isUnder = safeTotal.startsWith('-');
+                
+                // Logic Fix for Uniform "CUT" color
                 let displayTotal = (safeTotal === '0' && s1.includes('.')) ? "..." : (safeTotal === '0' ? 'E' : safeTotal);
-                if (isDQ) displayTotal = 'CUT';
+                let scoreColorClass = isUnder ? 'text-red-500' : 'text-white';
+                
+                if (isDQ) {
+                    displayTotal = 'CUT';
+                    scoreColorClass = 'text-gray-500'; // Force uniform color for all DQ players
+                }
 
                 tr.innerHTML = `
-                    <td class="px-4 py-5 text-center font-bold text-gray-500 text-sm">${rank}</td>
-                    <td class="px-4 py-5 font-bold ${isDQ ? 'text-gray-500 line-through italic' : 'text-gray-100'}">
-                        ${name} ${isDQ ? '<span class="ml-2 text-[10px] bg-red-900 text-red-200 px-2 py-0.5 rounded-full font-black uppercase">DQ</span>' : ''}
+                    <td class="px-4 py-5 text-center font-bold text-gray-500 text-sm">${isDQ ? '—' : rank}</td>
+                    <td class="px-4 py-5 font-bold ${isDQ ? 'text-gray-400 line-through italic' : 'text-gray-100'}">
+                        ${name} ${isDQ ? '<span class="ml-2 text-[9px] bg-red-900 text-red-200 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">DQ</span>' : ''}
                     </td>
                     <td class="px-4 py-5 text-center bg-[#1c2128]">
-                        <span class="${isUnder ? 'text-red-500' : 'text-white'} text-xl font-bold">${displayTotal}</span>
+                        <span class="${scoreColorClass} text-xl font-bold">${displayTotal}</span>
                     </td>
                     <td class="px-4 py-5 text-[11px] text-gray-400 font-semibold">
                         <div class="text-gray-200 font-bold mb-1">${g1}</div>
@@ -98,7 +108,7 @@
                 `;
                 tbody.appendChild(tr);
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Index Update Error:", e); }
     }
     update();
     setInterval(update, 60000);
