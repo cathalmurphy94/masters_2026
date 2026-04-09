@@ -45,6 +45,7 @@
         </div>
     </div>
 
+
     <script>
         const boardUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=950728203&single=true&output=csv';
         const cutUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=103685137&single=true&output=csv';
@@ -55,26 +56,27 @@
                 const cutTxt = await cutRes.text();
                 const cutRows = cutTxt.split('\n').slice(1);
                 
-                let golferStatus = {}; 
+                // 🛡️ SHIELD: Check Cut Line data
                 if (cutRows.length > 0) {
-                    const first = cutRows[0].split(',');
-                    const rawLine = parseInt(first[1]) - parseInt(first[2]);
+                    const firstCut = cutRows[0].split(',');
+                    if (!firstCut[1] || firstCut[1].includes('#')) {
+                        setTimeout(update, 3000); return;
+                    }
+                    const rawLine = parseInt(firstCut[1]) - parseInt(firstCut[2]);
                     document.getElementById('cut-display').innerText = rawLine > 0 ? '+' + rawLine : (rawLine === 0 ? 'E' : rawLine);
                 }
 
+                let golferStatus = {}; 
                 cutRows.forEach(line => {
                     const c = line.split(',').map(x => x.trim());
                     if (c.length < 3) return;
                     const toCut = parseInt(c[2]);
                     const isCut = c[3].toLowerCase().includes('yes') || c[3].includes('❌');
-                    
                     let type = 'SAFE';
                     if (!isCut) {
-                        if (toCut > 0) type = 'OVER'; // Playing now, but currently outside the line
-                        else if (toCut >= -3) type = 'DANGER'; // Within 3 strokes of the line
-                    } else {
-                        type = 'CUT'; // Game Over
-                    }
+                        if (toCut > 0) type = 'OVER';
+                        else if (toCut >= -3) type = 'DANGER';
+                    } else { type = 'CUT'; }
                     golferStatus[c[0]] = { type, toCut, score: c[1] };
                 });
 
@@ -82,13 +84,19 @@
                 const boardTxt = await boardRes.text();
                 const boardRows = boardTxt.split('\n').slice(1);
                 
-                const container = document.getElementById('on-the-line-list');
-                container.innerHTML = '';
+                // 🛡️ SHIELD: Check Standings data
+                if (boardRows.length > 0) {
+                    const firstBoard = boardRows[0].split(',');
+                    if (!firstBoard[2] || firstBoard[2].includes('#') || firstBoard[2] === '...') {
+                        setTimeout(update, 3000); return; 
+                    }
+                }
+
+                let newHTML = '';
                 let matchCount = 0;
 
                 boardRows.forEach(line => {
                     const r = line.split(',').map(x => x.trim());
-                    // Skip if the participant is already officially DQ'd
                     if (r.length < 10 || r[9].includes('❌')) return;
 
                     const team = [
@@ -97,14 +105,10 @@
                         { name: r[7], stats: golferStatus[r[7]] }
                     ];
 
-                    // Check if anyone on the team is in the "Danger" or "Over" zones
                     const atRisk = team.filter(g => g.stats && (g.stats.type === 'DANGER' || g.stats.type === 'OVER'));
 
                     if (atRisk.length > 0) {
                         matchCount++;
-                        const card = document.createElement('div');
-                        card.className = "line-card overflow-hidden border border-gray-100 shadow-sm flex flex-col md:flex-row";
-                        
                         let golfersHtml = team.map(g => {
                             const s = g.stats || { type: 'SAFE', toCut: -99, score: '...' };
                             let colorClasses = "bg-gray-50 text-gray-400 opacity-40";
@@ -117,7 +121,6 @@
                                 colorClasses = "pulse-red border-red-200 text-red-800 ring-1 ring-red-100";
                                 label = s.toCut + " BACK";
                             }
-
                             return `
                                 <div class="flex-1 p-4 border-l first:border-l-0 border-gray-100 ${colorClasses}">
                                     <p class="text-[8px] font-black uppercase tracking-widest mb-1">${label}</p>
@@ -127,31 +130,31 @@
                             `;
                         }).join('');
 
-                        card.innerHTML = `
-                            <div class="p-6 md:w-1/3 bg-white">
-                                <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Current Pos: ${r[0]}</span>
-                                <h3 class="font-serif text-2xl font-bold text-gray-900 leading-tight">${r[1]}</h3>
-                                <div class="mt-2 text-[9px] font-bold text-orange-600 uppercase tracking-tighter">
-                                    ⚠️ ${atRisk.length} Golfer${atRisk.length > 1 ? 's' : ''} at risk
+                        newHTML += `
+                            <div class="line-card overflow-hidden border border-gray-100 shadow-sm flex flex-col md:flex-row mb-6">
+                                <div class="p-6 md:w-1/3 bg-white">
+                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Current Pos: ${r[0]}</span>
+                                    <h3 class="font-serif text-2xl font-bold text-gray-900 leading-tight">${r[1]}</h3>
+                                    <div class="mt-2 text-[9px] font-bold text-orange-600 uppercase tracking-tighter">
+                                        ⚠️ ${atRisk.length} Golfer${atRisk.length > 1 ? 's' : ''} at risk
+                                    </div>
+                                </div>
+                                <div class="flex flex-col md:flex-row md:w-2/3 border-t md:border-t-0 md:border-l border-gray-100">
+                                    ${golfersHtml}
                                 </div>
                             </div>
-                            <div class="flex flex-col md:flex-row md:w-2/3 border-t md:border-t-0 md:border-l border-gray-100">
-                                ${golfersHtml}
-                            </div>
                         `;
-                        container.appendChild(card);
                     }
                 });
 
-                if (matchCount === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-20 bg-white rounded-xl border-2 border-dashed border-gray-200">
-                            <p class="text-4xl mb-4">🥂</p>
-                            <p class="text-gray-500 font-serif text-lg italic px-4">The Cut has been made. All remaining participants have survived for the weekend.</p>
-                        </div>`;
-                }
+                document.getElementById('on-the-line-list').innerHTML = matchCount === 0 ? 
+                    `<div class="text-center py-20 bg-white rounded-xl border-2 border-dashed border-gray-200"><p class="text-4xl mb-4">🥂</p><p class="text-gray-500 font-serif text-lg italic px-4">The Cut has been made. All remaining participants have survived for the weekend.</p></div>` 
+                    : newHTML;
 
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error(e); 
+                setTimeout(update, 5000);
+            }
         }
         update();
         setInterval(update, 60000);
