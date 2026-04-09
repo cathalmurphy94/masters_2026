@@ -46,6 +46,7 @@
         </div>
     </div>
 
+
     <script>
         const statsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=2089324932&single=true&output=csv';
 
@@ -55,9 +56,16 @@
                 const buffer = await response.arrayBuffer();
                 const csvText = new TextDecoder('utf-8').decode(buffer);
                 const rows = csvText.split(/\r?\n/).map(row => row.split(',').map(cell => cell.trim()));
-                const tbody = document.getElementById('stats-data');
-                tbody.innerHTML = '';
+                
+                // 🛡️ SHIELD
+                if (rows.length > 1) {
+                    const firstScore = rows[1][2];
+                    if (!firstScore || firstScore.includes('#')) {
+                        setTimeout(update, 3000); return;
+                    }
+                }
 
+                let newHTML = '';
                 for (let i = 1; i < rows.length; i++) {
                     const row = rows[i];
                     if (!row || row.length < 5 || !row[1]) continue;
@@ -65,25 +73,27 @@
                     const [rank, name, toPar, shots, odds, status] = row;
                     const isDQ = status && (status.includes("❌") || status.includes("CUT"));
                     
-                    const tr = document.createElement('tr');
-                    tr.className = isDQ ? 'bg-gray-50 opacity-50' : 'hover:bg-gray-50';
-
-                    tr.innerHTML = `
-                        <td class="px-6 py-6 text-center font-bold text-gray-400">${isDQ ? '—' : rank}</td>
-                        <td class="px-6 py-6">
-                            <div class="font-serif font-bold text-gray-900 ${isDQ ? 'line-through italic' : ''}">${name}</div>
-                        </td>
-                        <td class="px-6 py-6 text-center font-serif font-bold ${toPar.startsWith('-') ? 'text-red-600' : 'text-gray-900'}">
-                            ${isDQ ? 'CUT' : (toPar === '0' ? 'E' : toPar)}
-                        </td>
-                        <td class="px-6 py-6 text-center bg-gray-50/50 font-mono text-green-800 font-bold">
-                            ${isDQ ? '—' : shots}
-                        </td>
-                        <td class="px-6 py-6 text-center text-gray-400 text-sm italic">${odds}/1</td>
+                    newHTML += `
+                        <tr class="${isDQ ? 'bg-gray-50 opacity-50' : 'hover:bg-gray-50'}">
+                            <td class="px-6 py-6 text-center font-bold text-gray-400">${isDQ ? '—' : rank}</td>
+                            <td class="px-6 py-6">
+                                <div class="font-serif font-bold text-gray-900 ${isDQ ? 'line-through italic' : ''}">${name}</div>
+                            </td>
+                            <td class="px-6 py-6 text-center font-serif font-bold ${toPar.startsWith('-') ? 'text-red-600' : 'text-gray-900'}">
+                                ${isDQ ? 'CUT' : (toPar === '0' ? 'E' : toPar)}
+                            </td>
+                            <td class="px-6 py-6 text-center bg-gray-50/50 font-mono text-green-800 font-bold">
+                                ${isDQ ? '—' : shots}
+                            </td>
+                            <td class="px-6 py-6 text-center text-gray-400 text-sm italic">${odds}/1</td>
+                        </tr>
                     `;
-                    tbody.appendChild(tr);
                 }
-            } catch (e) { console.error(e); }
+                document.getElementById('stats-data').innerHTML = newHTML;
+            } catch (e) { 
+                console.error(e); 
+                setTimeout(update, 5000);
+            }
         }
         update();
         setInterval(update, 60000);
