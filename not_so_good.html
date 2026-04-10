@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masters 2026 | Not So Good</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --masters-green: #004b23; 
+            --masters-yellow: #f6c444; 
+            --masters-bg: #f9fafb; 
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--masters-bg); color: #111827; }
+        .font-serif { font-family: 'Libre Baskerville', serif; }
+        .masters-header { 
+            background: linear-gradient(135deg, #004b23 0%, #003a1b 100%); 
+            border-bottom: 4px solid var(--masters-yellow); 
+        }
+        .nav-link { color: #6b7280; font-weight: 600; transition: all 0.2s; }
+        .nav-active { color: var(--masters-green) !important; border-bottom: 2px solid var(--masters-green) !important; }
+        
+        /* Wanted Poster Styles */
+        .wanted-card {
+            background: #fffdf5; /* Slight parchment tint */
+            border: 2px solid #8c7355;
+            border-radius: 4px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), inset 0 0 20px rgba(140, 115, 85, 0.1);
+            position: relative;
+        }
+        .wanted-header {
+            font-family: 'Libre Baskerville', serif;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            color: #7f1d1d; /* Deep red */
+            border-bottom: 2px solid #8c7355;
+            border-top: 2px solid #8c7355;
+        }
+        .wooden-spoon-icon {
+            font-size: 3rem;
+            opacity: 0.2;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body class="p-2 md:p-6">
+    <div class="max-w-5xl mx-auto">
+        <header class="masters-header rounded-t-xl p-8 text-center shadow-lg">
+            <h1 class="text-4xl md:text-6xl font-serif text-[#f6c444] mb-2 tracking-tight">The Masters</h1>
+            <p class="text-white text-[10px] uppercase tracking-[0.5em] font-bold opacity-80">Wooden Spoon Tracker</p>
+        </header>
+
+        <nav class="bg-white border-x border-gray-200 flex justify-center space-x-4 md:space-x-8 py-4 sticky top-0 z-50 shadow-sm overflow-x-auto whitespace-nowrap px-4">
+            <a href="home.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">Standings</a>
+            <a href="masters_cut.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">Cut Line</a>
+            <a href="live_line.html" class="nav-link px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">On the Line</a>
+            <a href="not_so_good.html" class="nav-link nav-active px-3 py-1 text-[10px] uppercase tracking-widest hover:text-[#004b23]">Not So Good</a>
+        </nav>
+
+        <div class="mt-8 px-4 text-center">
+            <h2 class="text-2xl font-serif font-bold text-gray-800 mb-2">The "Most Wanted" List</h2>
+            <p class="text-sm text-gray-500 italic mb-8">Currently leading the race for dead last.</p>
+        </div>
+
+        <div id="wanted-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12 px-2">
+            <div class="col-span-full text-center py-20 text-gray-400 italic font-serif">
+                Rounding up the suspects...
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-between items-center px-4">
+            <div id="debug-status" class="text-[9px] text-gray-400 font-mono uppercase">System Active</div>
+            <div class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                Last Live Update: <span id="last-update" class="text-green-700 font-mono">Connecting...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHQDG5CJQT_UeE-FfUr4yx696O2kaUwDm1Iod76aC3gyGi9x8agvjZqikW3TP0btaCZCk5i8rszdK/pub?gid=950728203&single=true&output=csv';
+
+    async function update() {
+        try {
+            const response = await fetch(csvUrl + '&cb=' + Date.now());
+            const buffer = await response.arrayBuffer();
+            const csvText = new TextDecoder('utf-8').decode(buffer);
+            
+            const rows = csvText.split(/\r?\n/).map(row => row.split(',').map(cell => cell.trim()));
+            if (rows.length < 2) return;
+
+            // 🛡️ THE SHIELD
+            const checkTotal = rows[1][2]; 
+            if (!checkTotal || checkTotal.includes('#') || checkTotal === '...') {
+                document.getElementById('debug-status').innerText = "Awaiting Valid Data...";
+                setTimeout(update, 3000); 
+                return; 
+            }
+
+            let participants = [];
+
+            // Extract and parse the data
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length < 9 || !row[1]) continue;
+
+                try {
+                    const [rank, name, total, g1, s1, g2, s2, g3, s3, status] = row;
+                    const isDQ = status && (status.includes("❌") || status.includes("CUT") || status.includes("‚"));
+                    
+                    let numScore = 0;
+                    if (isDQ || total === "CUT") numScore = 999; // Treat CUT as worst possible score
+                    else if (total === "E" || total === "0") numScore = 0;
+                    else numScore = parseInt(total.replace('+', '')) || 0;
+
+                    participants.push({ name, total: isDQ ? 'CUT' : (total === '0' ? 'E' : total), numScore, g1, s1, g2, s2, g3, s3, isDQ });
+                } catch (e) { console.error(e); }
+            }
+
+            // 🔽 SORT UPSIDE DOWN (Worst scores first)
+            participants.sort((a, b) => b.numScore - a.numScore);
+
+            // Take the bottom 5 worst participants
+            const worst5 = participants.slice(0, 5);
+            let newHTML = '';
+
+            worst5.forEach((p, index) => {
+                const rankLabels = ["#1 Most Wanted", "#2 Suspect", "#3 Suspect", "#4 Suspect", "#5 Suspect"];
+                const headerColor = index === 0 ? "bg-red-900 text-white border-red-900" : "bg-transparent text-red-900";
+                
+                newHTML += `
+                    <div class="wanted-card flex flex-col p-6 items-center text-center ${index === 0 ? 'md:col-span-2 lg:col-span-3 transform scale-105 mb-4' : ''}">
+                        <div class="wooden-spoon-icon">🥄</div>
+                        
+                        <div class="w-full py-2 mb-4 wanted-header text-xl uppercase ${headerColor}">
+                            ${rankLabels[index]}
+                        </div>
+                        
+                        <h3 class="text-3xl font-serif font-black text-gray-900 mb-1 leading-tight tracking-tight">${p.name}</h3>
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-4">Charge: Terrible Drafting</p>
+                        
+                        <div class="text-5xl font-serif font-black ${p.isDQ ? 'text-gray-400' : 'text-red-700'} mb-6">
+                            ${p.total}
+                        </div>
+                        
+                        <div class="w-full border-t border-dashed border-[#8c7355] opacity-50 mb-4"></div>
+                        <p class="text-[9px] uppercase font-bold text-gray-800 tracking-widest mb-3">Known Accomplices</p>
+                        
+                        <div class="grid grid-cols-3 gap-2 w-full text-[11px]">
+                            <div class="bg-black/5 p-2 rounded">
+                                <div class="font-bold text-gray-900 mb-1 truncate">${p.g1}</div>
+                                <div class="font-serif ${p.s1.includes('-') ? 'text-gray-500' : 'text-red-700 font-black'}">${p.s1 === '0' ? 'E' : p.s1}</div>
+                            </div>
+                            <div class="bg-black/5 p-2 rounded">
+                                <div class="font-bold text-gray-900 mb-1 truncate">${p.g2}</div>
+                                <div class="font-serif ${p.s2.includes('-') ? 'text-gray-500' : 'text-red-700 font-black'}">${p.s2 === '0' ? 'E' : p.s2}</div>
+                            </div>
+                            <div class="bg-black/5 p-2 rounded">
+                                <div class="font-bold text-gray-900 mb-1 truncate">${p.g3}</div>
+                                <div class="font-serif ${p.s3.includes('-') ? 'text-gray-500' : 'text-red-700 font-black'}">${p.s3 === '0' ? 'E' : p.s3}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('wanted-list').innerHTML = newHTML;
+            document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+            document.getElementById('debug-status').innerText = "Live: OK";
+            
+        } catch (e) { 
+            console.error("Main Update Error:", e);
+            document.getElementById('debug-status').innerText = "Network Error - Retrying...";
+            setTimeout(update, 5000);
+        }
+    }
+
+    update();
+    setInterval(update, 60000);
+    </script>
+</body>
+</html>
