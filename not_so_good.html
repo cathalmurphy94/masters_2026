@@ -67,7 +67,7 @@
 
         <div id="wanted-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12 px-2">
             <div class="col-span-full text-center py-20 text-gray-400 italic font-serif">
-                Rounding up the suspects...
+                Bad job...
             </div>
         </div>
         
@@ -127,7 +127,7 @@
             let newHTML = '';
 
             worst5.forEach((p, index) => {
-                const rankLabels = ["#1 Most Wanted", "#2 Suspect", "#3 Suspect", "#4 Suspect", "#5 Suspect"];
+                const rankLabels = ["#1 Top Dog", "#2 Not great", "#3 Also not great", "#4 Better but still not great", "#5 Best of a bad bunch"];
                 const headerColor = index === 0 ? "bg-red-900 text-white border-red-900" : "bg-transparent text-red-900";
                 
                 newHTML += `
@@ -139,14 +139,14 @@
                         </div>
                         
                         <h3 class="text-3xl font-serif font-black text-gray-900 mb-1 leading-tight tracking-tight">${p.name}</h3>
-                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-4">Charge: Terrible Drafting</p>
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-4">Charge: Trash Drafting</p>
                         
                         <div class="text-5xl font-serif font-black ${p.isDQ ? 'text-gray-400' : 'text-red-700'} mb-6">
                             ${p.total}
                         </div>
                         
                         <div class="w-full border-t border-dashed border-[#8c7355] opacity-50 mb-4"></div>
-                        <p class="text-[9px] uppercase font-bold text-gray-800 tracking-widest mb-3">Known Accomplices</p>
+                        <p class="text-[9px] uppercase font-bold text-gray-800 tracking-widest mb-3">Selected Golfers</p>
                         
                         <div class="grid grid-cols-3 gap-2 w-full text-[11px]">
                             <div class="bg-black/5 p-2 rounded">
